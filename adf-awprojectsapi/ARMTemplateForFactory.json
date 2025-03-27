@@ -33,14 +33,109 @@
 	},
 	"resources": [
 		{
-			"name": "[concat(parameters('factoryName'), '/GittoRaw')]",
+			"name": "[concat(parameters('factoryName'), '/DynamicGittoRaw')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
 				"activities": [
 					{
-						"name": "GetDatafromGit",
-						"type": "Copy",
+						"name": "ForEach_git",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Lookup_git",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Lookup_git').output.value",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "GetDatafromGithub",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "HttpReadSettings",
+												"requestMethod": "GET"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_aw_csv_dynamic",
+											"type": "DatasetReference",
+											"parameters": {
+												"rel_url": {
+													"value": "@item().rel_url",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_raw_dynamic",
+											"type": "DatasetReference",
+											"parameters": {
+												"folder_name": {
+													"value": "@item().folder_name",
+													"type": "Expression"
+												},
+												"file_name": {
+													"value": "@item().file_name",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								}
+							]
+						}
+					},
+					{
+						"name": "Lookup_git",
+						"type": "Lookup",
 						"dependsOn": [],
 						"policy": {
 							"timeout": "0.12:00:00",
@@ -52,48 +147,23 @@
 						"userProperties": [],
 						"typeProperties": {
 							"source": {
-								"type": "DelimitedTextSource",
+								"type": "JsonSource",
 								"storeSettings": {
-									"type": "HttpReadSettings",
-									"requestMethod": "GET"
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
 								},
 								"formatSettings": {
-									"type": "DelimitedTextReadSettings"
+									"type": "JsonReadSettings"
 								}
 							},
-							"sink": {
-								"type": "ParquetSink",
-								"storeSettings": {
-									"type": "AzureBlobFSWriteSettings"
-								},
-								"formatSettings": {
-									"type": "ParquetWriteSettings"
-								}
+							"dataset": {
+								"referenceName": "ds_parameters",
+								"type": "DatasetReference",
+								"parameters": {}
 							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "AdventureWorks_csv",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "ds_raw_parq",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
+							"firstRowOnly": false
+						}
 					}
 				],
 				"policy": {
@@ -102,8 +172,9 @@
 				"annotations": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/AdventureWorks_csv')]",
-				"[concat(variables('factoryId'), '/datasets/ds_raw_parq')]"
+				"[concat(variables('factoryId'), '/datasets/ds_parameters')]",
+				"[concat(variables('factoryId'), '/datasets/ds_aw_csv_dynamic')]",
+				"[concat(variables('factoryId'), '/datasets/ds_raw_dynamic')]"
 			]
 		},
 		{
@@ -131,6 +202,79 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/GitServer_Data_Source')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_aw_csv_dynamic')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "GitServer_Data_Source",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"rel_url": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "HttpServerLocation",
+						"relativeUrl": {
+							"value": "@dataset().rel_url",
+							"type": "Expression"
+						}
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/GitServer_Data_Source')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_parameters')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AwDatalake_conn",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "git_awdata.json",
+						"folderPath": "Adventure_work_API_Project",
+						"fileSystem": "parameters"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"rel_url": {
+							"type": "string"
+						},
+						"folder_name": {
+							"type": "string"
+						},
+						"file_name": {
+							"type": "string"
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AwDatalake_conn')]"
 			]
 		},
 		{
@@ -163,7 +307,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/ds_raw_parq')]",
+			"name": "[concat(parameters('factoryName'), '/ds_raw_dynamic')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -171,16 +315,33 @@
 					"referenceName": "AwDatalake_conn",
 					"type": "LinkedServiceReference"
 				},
+				"parameters": {
+					"folder_name": {
+						"type": "String"
+					},
+					"file_name": {
+						"type": "String"
+					}
+				},
 				"annotations": [],
-				"type": "Parquet",
+				"type": "DelimitedText",
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
-						"fileName": "product.parquet",
-						"folderPath": "products",
+						"fileName": {
+							"value": "@dataset().file_name",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().folder_name",
+							"type": "Expression"
+						},
 						"fileSystem": "raw"
 					},
-					"compressionCodec": "snappy"
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
 				},
 				"schema": []
 			},
