@@ -1,0 +1,30 @@
+{
+	"name": "ds_aw_csv_dynamic",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "GitServer_Data_Source",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"rel_url": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "HttpServerLocation",
+				"relativeUrl": {
+					"value": "@dataset().rel_url",
+					"type": "Expression"
+				}
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	}
+}

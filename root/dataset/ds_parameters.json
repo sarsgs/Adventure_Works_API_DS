@@ -1,0 +1,33 @@
+{
+	"name": "ds_parameters",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AwDatalake_conn",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "git_awdata.json",
+				"folderPath": "Adventure_work_API_Project",
+				"fileSystem": "parameters"
+			}
+		},
+		"schema": {
+			"type": "object",
+			"properties": {
+				"rel_url": {
+					"type": "string"
+				},
+				"folder_name": {
+					"type": "string"
+				},
+				"file_name": {
+					"type": "string"
+				}
+			}
+		}
+	}
+}
