@@ -1,0 +1,9 @@
+{
+	"name": "adf-awprojectsapi",
+	"location": "westeurope",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "fd91b9e7-1edb-4608-91d6-17ef0bb78c99",
+		"tenantId": "e81724c7-ece5-4c4c-a37e-3f317ef0799d"
+	}
+}
