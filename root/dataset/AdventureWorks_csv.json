@@ -1,0 +1,22 @@
+{
+	"name": "AdventureWorks_csv",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "GitServer_Data_Source",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "HttpServerLocation",
+				"relativeUrl": "sarsgs/Adventure_Works_API_DS/refs/heads/main/Data/AdventureWorks_Products.csv"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	}
+}

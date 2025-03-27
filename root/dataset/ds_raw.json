@@ -1,0 +1,24 @@
+{
+	"name": "ds_raw",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AwDatalake_conn",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "product.csv",
+				"folderPath": "products",
+				"fileSystem": "raw"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	}
+}
